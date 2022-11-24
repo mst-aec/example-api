@@ -6,30 +6,62 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Java CI with Maven
+name: CI
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
+    name: Build and Test
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up JDK 11
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-        distribution: 'temurin'
-        cache: maven
-    - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      - uses: actions/checkout@v3
 
-    # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-    - name: Update dependency graph
-      uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
+      - name: Set up JDK 19
+        id: steup-java-env
+        uses: actions/setup-java@v3
+        with:
+          java-version: '19'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build and run tests
+        run: mvn test clean
+
+  deploy-dev:
+    name: Deploy to Dev
+    if: github.event.ref == 'refs/heads/main'
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    environment:
+      name: Development
+    steps:
+      - name: Deploy
+        run: echo dev deploy
+
+  deploy-test:
+    name: Deploy to Test
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    environment:
+      name: Test
+    steps:
+      - name: Deploy
+        run: echo test deploy
+
+  deploy-prod:
+    name: Deploy to Production
+    needs: [ deploy-test ]
+    runs-on: ubuntu-latest
+    environment:
+      name: Production
+    steps:
+      - name: Deploy
+        run: echo prod deploy
